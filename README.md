@@ -9,8 +9,14 @@ occasionwear-rental service.
 - Financial years are loaded from the existing API for the entered App ID.
 - The session token is stored using Android secure storage; the password is
   never persisted.
+- A 4-digit MPIN is stored with the session in Android secure storage and locks
+  the app when it returns from the background. Fingerprint unlock is optional
+  on devices with enrolled biometrics; the MPIN remains available as a fallback.
+- Signing out removes the saved session, MPIN, and biometric-unlock preference.
 - Dashboard totals, rental due/overdue counts, and recent payments load from the
   existing API.
+- Dashboard cards use a translucent glass treatment with subtle entrance and
+  count-up animations.
 - Customer, measurement, tailoring-order, rental-booking, and return workflows
   are planned for the next implementation pass from the Angular reference.
 

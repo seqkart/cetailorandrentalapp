@@ -54,6 +54,8 @@ class SessionStore {
   const SessionStore(this._storage);
 
   static const _sessionKey = 'auth_session';
+  static const _pinKey = 'unlock_pin';
+  static const _biometricKey = 'biometric_unlock_enabled';
   final FlutterSecureStorage _storage;
 
   Future<AuthSession?> read() async {
@@ -70,5 +72,22 @@ class SessionStore {
   Future<void> write(AuthSession session) =>
       _storage.write(key: _sessionKey, value: jsonEncode(session.toJson()));
 
-  Future<void> clear() => _storage.delete(key: _sessionKey);
+  Future<String?> readPin() => _storage.read(key: _pinKey);
+
+  Future<bool> readBiometricPreference() async =>
+      await _storage.read(key: _biometricKey) == 'true';
+
+  Future<void> saveUnlockSettings({
+    required String pin,
+    required bool useBiometrics,
+  }) async {
+    await _storage.write(key: _pinKey, value: pin);
+    await _storage.write(key: _biometricKey, value: useBiometrics.toString());
+  }
+
+  Future<void> clear() async {
+    await _storage.delete(key: _sessionKey);
+    await _storage.delete(key: _pinKey);
+    await _storage.delete(key: _biometricKey);
+  }
 }
