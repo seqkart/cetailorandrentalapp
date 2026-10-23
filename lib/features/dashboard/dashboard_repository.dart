@@ -68,7 +68,8 @@ class DashboardRepository {
     );
   }
 
-  Map<String, dynamic> _dataMap(Map<String, dynamic> response) {
+  Map<String, dynamic> _dataMap(Object? response) {
+    if (response is! Map<String, dynamic>) return const {};
     final data = response['data'];
     if (data is Map<String, dynamic>) return data;
     return response;

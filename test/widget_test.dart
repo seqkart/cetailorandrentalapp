@@ -70,7 +70,7 @@ void main() {
           '/api/v1/transaction/GetDashboardDetails' =>
             '{"errorCode":0,"data":{}}',
           '/api/v1/transaction/GetOrderAndRentalStatusCounts' =>
-            '{"errorCode":0,"data":{}}',
+            '{"errorCode":0,"data":{"orderStatus":{},"rentalStatus":{}}}',
           '/api/v1/Transaction/GetRecentPaymentsAsync' =>
             '{"errorCode":0,"data":[]}',
           _ => '{"errorCode":0,"data":[]}',
@@ -104,7 +104,7 @@ void main() {
     await tester.tap(find.text('SAVE MPIN'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Tailoring & Rentals'), findsOneWidget);
+    expect(find.byTooltip('Sign out'), findsOneWidget);
     expect(tester.takeException(), isNull);
     expect(sessionStore.savedPin, '1234');
 
@@ -150,12 +150,12 @@ void main() {
     await tester.tap(find.text('UNLOCK'));
     await tester.pumpAndSettle();
     expect(find.text('That MPIN is not correct. Try again.'), findsOneWidget);
-    expect(find.text('Tailoring & Rentals'), findsNothing);
+    expect(find.byTooltip('Sign out'), findsNothing);
 
     await tester.enterText(find.byKey(const Key('mpin-field')), '4321');
     await tester.tap(find.text('UNLOCK'));
     await tester.pumpAndSettle();
-    expect(find.text('Tailoring & Rentals'), findsOneWidget);
+    expect(find.byTooltip('Sign out'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

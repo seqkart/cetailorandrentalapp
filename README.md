@@ -15,8 +15,8 @@ occasionwear-rental service.
 - Signing out removes the saved session, MPIN, and biometric-unlock preference.
 - Dashboard totals, rental due/overdue counts, and recent payments load from the
   existing API.
-- Dashboard cards use a translucent glass treatment with subtle entrance and
-  count-up animations.
+- The dashboard uses a compact studio header, business overview, rental alerts,
+  quick-access tiles, and recent payments, with restrained animated totals.
 - Customer, measurement, tailoring-order, rental-booking, and return workflows
   are planned for the next implementation pass from the Angular reference.
 
