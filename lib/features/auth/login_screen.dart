@@ -1,27 +1,37 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 
 import '../../core/session_store.dart';
+import '../../l10n/app_strings.dart';
+import '../../widgets/language_picker.dart';
 import 'auth_repository.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({
     required this.repository,
     required this.onSignedIn,
+    this.locale,
+    this.onLocaleChanged,
     super.key,
   });
 
   final AuthRepository repository;
   final ValueChanged<AuthSession> onSignedIn;
+  final Locale? locale;
+  final Future<void> Function(Locale locale)? onLocaleChanged;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _appIdController = TextEditingController();
   final _userNameController = TextEditingController();
   final _passwordController = TextEditingController();
+  late final AnimationController _backgroundController;
   List<FinancialYear> _financialYears = const [];
   FinancialYear? _selectedYear;
   bool _loadingYears = false;
@@ -30,7 +40,17 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _error;
 
   @override
+  void initState() {
+    super.initState();
+    _backgroundController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..forward();
+  }
+
+  @override
   void dispose() {
+    _backgroundController.dispose();
     _appIdController.dispose();
     _userNameController.dispose();
     _passwordController.dispose();
@@ -100,229 +120,311 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final strings = appStrings(context);
     return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF111B33), Color(0xFF24457F), Color(0xFF0C7777)],
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 460),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Icon(
-                      Icons.content_cut_rounded,
-                      color: Colors.white,
-                      size: 52,
-                    ),
-                    const SizedBox(height: 14),
-                    const Text(
-                      'CREATIVE EASE',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 2.2,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Made to fit.\nReady to wear.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 30,
-                        height: 1.15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Tailoring & occasionwear rentals',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.78),
-                        fontSize: 15,
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                    Card(
-                      color: Colors.white,
-                      elevation: 10,
-                      shadowColor: Colors.black.withValues(alpha: 0.18),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(22),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                'Team sign in',
-                                style: Theme.of(context).textTheme.headlineSmall
-                                    ?.copyWith(fontWeight: FontWeight.w800),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'Sign in to manage your tailoring and rentals.',
-                                style: TextStyle(
-                                  color: colors.onSurfaceVariant,
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-                              TextFormField(
-                                controller: _appIdController,
-                                textInputAction: TextInputAction.next,
-                                decoration: const InputDecoration(
-                                  labelText: 'App ID',
-                                  prefixIcon: Icon(Icons.business_outlined),
-                                ),
-                                validator: _required,
-                                onFieldSubmitted: (_) => _loadFinancialYears(),
-                              ),
-                              const SizedBox(height: 14),
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: TextButton.icon(
-                                  onPressed: _loadingYears
-                                      ? null
-                                      : _loadFinancialYears,
-                                  icon: _loadingYears
-                                      ? const SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
-                                        )
-                                      : const Icon(Icons.refresh_rounded),
-                                  label: const Text('Load financial years'),
-                                ),
-                              ),
-                              DropdownButtonFormField<FinancialYear>(
-                                initialValue: _selectedYear,
-                                decoration: const InputDecoration(
-                                  labelText: 'Financial year',
-                                  prefixIcon: Icon(Icons.calendar_month),
-                                ),
-                                items: _financialYears
-                                    .map(
-                                      (year) => DropdownMenuItem(
-                                        value: year,
-                                        child: Text(
-                                          '${year.name}${year.isCurrent ? ' (Current)' : ''}',
-                                        ),
-                                      ),
-                                    )
-                                    .toList(),
-                                onChanged: _signingIn
-                                    ? null
-                                    : (year) =>
-                                          setState(() => _selectedYear = year),
-                              ),
-                              const SizedBox(height: 14),
-                              TextFormField(
-                                controller: _userNameController,
-                                textInputAction: TextInputAction.next,
-                                autofillHints: const [AutofillHints.username],
-                                decoration: const InputDecoration(
-                                  labelText: 'User name',
-                                  prefixIcon: Icon(Icons.person_outline),
-                                ),
-                                validator: _required,
-                              ),
-                              const SizedBox(height: 14),
-                              TextFormField(
-                                controller: _passwordController,
-                                obscureText: _obscurePassword,
-                                textInputAction: TextInputAction.done,
-                                autofillHints: const [AutofillHints.password],
-                                onFieldSubmitted: (_) => _signIn(),
-                                decoration: InputDecoration(
-                                  labelText: 'Password',
-                                  prefixIcon: const Icon(Icons.lock_outline),
-                                  suffixIcon: IconButton(
-                                    onPressed: () => setState(
-                                      () =>
-                                          _obscurePassword = !_obscurePassword,
-                                    ),
-                                    icon: Icon(
-                                      _obscurePassword
-                                          ? Icons.visibility_outlined
-                                          : Icons.visibility_off_outlined,
-                                    ),
-                                  ),
-                                ),
-                                validator: _required,
-                              ),
-                              if (_error != null) ...[
-                                const SizedBox(height: 14),
-                                Text(
-                                  _error!,
-                                  style: TextStyle(color: colors.error),
-                                ),
-                              ],
-                              const SizedBox(height: 20),
-                              FilledButton(
-                                onPressed: _signingIn ? null : _signIn,
-                                style: FilledButton.styleFrom(
-                                  minimumSize: const Size.fromHeight(52),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                ),
-                                child: _signingIn
-                                    ? const SizedBox(
-                                        width: 22,
-                                        height: 22,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2.5,
-                                          color: Colors.white,
-                                        ),
-                                      )
-                                    : const Text(
-                                        'SIGN IN',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: 0.6,
-                                        ),
-                                      ),
-                              ),
-                            ],
+      backgroundColor: const Color(0xFF172844),
+      body: AnimatedBuilder(
+        animation: _backgroundController,
+        builder: (context, _) {
+          final progress = Curves.easeInOutCubic.transform(
+            _backgroundController.value,
+          );
+          return Container(
+            key: const ValueKey('login-animated-background'),
+            constraints: const BoxConstraints.expand(),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color.lerp(
+                    const Color(0xFF152544),
+                    const Color(0xFF102D4C),
+                    progress,
+                  )!,
+                  Color.lerp(
+                    const Color(0xFF253F73),
+                    const Color(0xFF1C5569),
+                    progress,
+                  )!,
+                  Color.lerp(
+                    const Color(0xFF3D2B69),
+                    const Color(0xFF57356B),
+                    progress,
+                  )!,
+                ],
+              ),
+            ),
+            child: SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 460),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: LanguagePicker(
+                            locale: widget.locale ?? const Locale('en'),
+                            onChanged: widget.onLocaleChanged ?? (_) async {},
                           ),
                         ),
-                      ),
+                        SizedBox(
+                          width: 96,
+                          height: 96,
+                          child: Image.asset(
+                            'assets/images/login_logo.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        const Text(
+                          'CREATIVE EASE',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFFD8E9FF),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 2.2,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          strings.madeToFit,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFFFFF6E5),
+                            fontSize: 30,
+                            height: 1.15,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          strings.tailoringAndRentals,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFFD1DDF0),
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(24),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                            child: Card(
+                              color: const Color(0xEFFFFFFF),
+                              elevation: 1,
+                              shadowColor: const Color(0x181688E8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(24),
+                                side: const BorderSide(
+                                  color: Color(0xFFD8E9FA),
+                                ),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(22),
+                                child: Form(
+                                  key: _formKey,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      Text(
+                                        strings.teamSignIn,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .headlineSmall
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        strings.signInDescription,
+                                        style: TextStyle(
+                                          color: colors.onSurfaceVariant,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 20),
+                                      TextFormField(
+                                        selectAllOnFocus: true,
+                                        controller: _appIdController,
+                                        textInputAction: TextInputAction.next,
+                                        decoration: InputDecoration(
+                                          labelText: strings.appId,
+                                          prefixIcon: const Icon(
+                                            Icons.business_outlined,
+                                          ),
+                                        ),
+                                        validator: _required,
+                                        onFieldSubmitted: (_) =>
+                                            _loadFinancialYears(),
+                                      ),
+                                      const SizedBox(height: 14),
+                                      Align(
+                                        alignment: Alignment.centerRight,
+                                        child: TextButton.icon(
+                                          onPressed: _loadingYears
+                                              ? null
+                                              : _loadFinancialYears,
+                                          icon: _loadingYears
+                                              ? const SizedBox(
+                                                  width: 16,
+                                                  height: 16,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                      ),
+                                                )
+                                              : const Icon(
+                                                  Icons.refresh_rounded,
+                                                ),
+                                          label: Text(
+                                            strings.loadFinancialYears,
+                                          ),
+                                        ),
+                                      ),
+                                      DropdownButtonFormField<FinancialYear>(
+                                        initialValue: _selectedYear,
+                                        decoration: InputDecoration(
+                                          labelText: strings.financialYear,
+                                          prefixIcon: const Icon(
+                                            Icons.calendar_month,
+                                          ),
+                                        ),
+                                        items: _financialYears
+                                            .map(
+                                              (year) => DropdownMenuItem(
+                                                value: year,
+                                                child: Text(
+                                                  '${year.name}${year.isCurrent ? ' (${strings.current})' : ''}',
+                                                ),
+                                              ),
+                                            )
+                                            .toList(),
+                                        onChanged: _signingIn
+                                            ? null
+                                            : (year) => setState(
+                                                () => _selectedYear = year,
+                                              ),
+                                      ),
+                                      const SizedBox(height: 14),
+                                      TextFormField(
+                                        selectAllOnFocus: true,
+                                        controller: _userNameController,
+                                        textInputAction: TextInputAction.next,
+                                        autofillHints: const [
+                                          AutofillHints.username,
+                                        ],
+                                        decoration: InputDecoration(
+                                          labelText: strings.userName,
+                                          prefixIcon: const Icon(
+                                            Icons.person_outline,
+                                          ),
+                                        ),
+                                        validator: _required,
+                                      ),
+                                      const SizedBox(height: 14),
+                                      TextFormField(
+                                        selectAllOnFocus: true,
+                                        controller: _passwordController,
+                                        obscureText: _obscurePassword,
+                                        textInputAction: TextInputAction.done,
+                                        autofillHints: const [
+                                          AutofillHints.password,
+                                        ],
+                                        decoration: InputDecoration(
+                                          labelText: strings.password,
+                                          prefixIcon: const Icon(
+                                            Icons.lock_outline,
+                                          ),
+                                          suffixIcon: IconButton(
+                                            tooltip: _obscurePassword
+                                                ? strings.showPassword
+                                                : strings.hidePassword,
+                                            onPressed: () => setState(
+                                              () => _obscurePassword =
+                                                  !_obscurePassword,
+                                            ),
+                                            icon: Icon(
+                                              _obscurePassword
+                                                  ? Icons.visibility_outlined
+                                                  : Icons
+                                                        .visibility_off_outlined,
+                                            ),
+                                          ),
+                                        ),
+                                        validator: _required,
+                                        onFieldSubmitted: (_) => _signIn(),
+                                      ),
+                                      if (_error != null) ...[
+                                        const SizedBox(height: 14),
+                                        Text(
+                                          localizedUiText(context, _error!),
+                                          style: TextStyle(color: colors.error),
+                                        ),
+                                      ],
+                                      const SizedBox(height: 20),
+                                      FilledButton(
+                                        onPressed: _signingIn ? null : _signIn,
+                                        style: FilledButton.styleFrom(
+                                          minimumSize: const Size.fromHeight(
+                                            52,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              14,
+                                            ),
+                                          ),
+                                        ),
+                                        child: _signingIn
+                                            ? const SizedBox(
+                                                width: 22,
+                                                height: 22,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      strokeWidth: 2.5,
+                                                      color: Colors.white,
+                                                    ),
+                                              )
+                                            : Text(
+                                                strings.signIn,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w800,
+                                                  letterSpacing: 0.6,
+                                                ),
+                                              ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          strings.simplerRental,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Color(0xFFD1DDF0)),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 18),
-                    Text(
-                      'A considered fit. A simpler rental.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
 
-  String? _required(String? value) =>
-      value == null || value.trim().isEmpty ? 'Required' : null;
+  String? _required(String? value) => value == null || value.trim().isEmpty
+      ? appStrings(context).signInRequired
+      : null;
 }

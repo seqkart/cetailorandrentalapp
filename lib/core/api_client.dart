@@ -56,6 +56,13 @@ class ApiClient {
     return _decode(response);
   }
 
+  Future<Map<String, dynamic>> delete(String path) async {
+    final response = await _client
+        .delete(_uri(path), headers: _headers)
+        .timeout(const Duration(seconds: 30));
+    return _decode(response);
+  }
+
   Map<String, dynamic> _decode(http.Response response) {
     Object? decoded;
     try {

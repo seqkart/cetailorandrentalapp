@@ -24,11 +24,49 @@ class DashboardSnapshot {
   int? get rentalsDueToday => _readCount(details['rentalsDueToday']);
   int? get overdueRentals => _readCount(details['overdueRentals']);
 
+  List<DashboardStatusCount> get tailoringStatuses =>
+      _statusCounts(orderStatus);
+  List<DashboardStatusCount> get rentalStatuses => _statusCounts(
+    rentalStatus,
+    fallbackLabels: const ['Booked', 'Delivered', 'In alterations', 'Returns'],
+  );
+
+  static List<DashboardStatusCount> _statusCounts(
+    Map<String, dynamic> status, {
+    List<String> fallbackLabels = const [],
+  }) {
+    final labels = status['labels'];
+    final series = status['series'];
+    if (labels is List && labels.isNotEmpty) {
+      return [
+        for (var index = 0; index < labels.length; index++)
+          if (labels[index].toString().trim().isNotEmpty)
+            DashboardStatusCount(
+              label: labels[index].toString(),
+              count: series is List && index < series.length
+                  ? _readCount(series[index])
+                  : null,
+            ),
+      ];
+    }
+    return [
+      for (final label in fallbackLabels) DashboardStatusCount(label: label),
+    ];
+  }
+
   static int? _readCount(Object? value) {
     if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
     if (value is List) return value.length;
     return null;
   }
+}
+
+class DashboardStatusCount {
+  const DashboardStatusCount({required this.label, this.count});
+
+  final String label;
+  final int? count;
 }
 
 class DashboardRepository {

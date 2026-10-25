@@ -23,7 +23,7 @@ void main() {
           );
         }
         return http.Response(
-          '{"errorCode":0,"token":"test-token","userID":12,"userName":"Taylor","companyName":"Studio"}',
+          '{"errorCode":0,"token":"test-token","userID":12,"userName":"Taylor","companyName":"Studio","companylogo":"https://example.test/studio.png","userRole":"RENTAL"}',
           200,
         );
       }),
@@ -60,9 +60,49 @@ void main() {
     expect(years.single.id, 5);
     expect(session.financialYearId, 5);
     expect(session.userName, 'Taylor');
+    expect(session.userRole, 'RENTAL');
+    expect(session.companyLogo, 'https://example.test/studio.png');
+    expect(
+      AuthSession.fromJson(session.toJson()).companyLogo,
+      'https://example.test/studio.png',
+    );
+    expect(session.canViewRentals, isTrue);
+    expect(session.canViewTailoring, isFalse);
     expect(sessionStore.savedSession, same(session));
     expect(session.toJson().containsKey('password'), isFalse);
   });
+
+  test(
+    'rejects a successful login response without a supported role',
+    () async {
+      final sessionStore = _MemorySessionStore();
+      final api = ApiClient(
+        baseUrl: 'https://example.test/api/v1/',
+        client: MockClient(
+          (_) async => http.Response(
+            '{"errorCode":0,"token":"test-token","companyName":"Studio"}',
+            200,
+          ),
+        ),
+      );
+      final repository = AuthRepository(api, sessionStore);
+
+      await expectLater(
+        repository.signIn(
+          appId: 'app-123',
+          userName: 'Taylor',
+          password: 'password',
+          financialYear: const FinancialYear(
+            id: 5,
+            name: '2025-26',
+            isCurrent: true,
+          ),
+        ),
+        throwsA(isA<ApiException>()),
+      );
+      expect(sessionStore.savedSession, isNull);
+    },
+  );
 }
 
 class _MemorySessionStore extends SessionStore {

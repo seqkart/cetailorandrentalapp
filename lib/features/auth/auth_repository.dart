@@ -81,6 +81,18 @@ class AuthRepository {
       );
     }
 
+    final userRole = response['userRole'];
+    if (userRole is! String ||
+        !const {
+          'ADMIN',
+          'TAILOR',
+          'RENTAL',
+        }.contains(userRole.trim().toUpperCase())) {
+      throw const ApiException(
+        'Login response is missing a valid user role. Please contact support.',
+      );
+    }
+
     final session = AuthSession(
       token: token,
       appId: appId.trim(),
@@ -88,6 +100,8 @@ class AuthRepository {
       financialYearName: financialYear.name,
       companyName: response['companyName']?.toString() ?? '',
       userName: response['userName']?.toString() ?? userName.trim(),
+      companyLogo: response['companylogo']?.toString() ?? '',
+      userRole: userRole.trim().toUpperCase(),
     );
     await _sessionStore.write(session);
     return session;

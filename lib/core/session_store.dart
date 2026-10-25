@@ -10,6 +10,8 @@ class AuthSession {
     required this.financialYearName,
     required this.companyName,
     required this.userName,
+    this.companyLogo = '',
+    required this.userRole,
   });
 
   final String token;
@@ -18,6 +20,15 @@ class AuthSession {
   final String financialYearName;
   final String companyName;
   final String userName;
+  final String companyLogo;
+  final String userRole;
+
+  String get normalizedRole => userRole.trim().toUpperCase();
+  bool get hasSupportedRole =>
+      const {'ADMIN', 'TAILOR', 'RENTAL'}.contains(normalizedRole);
+  bool get isAdmin => normalizedRole == 'ADMIN';
+  bool get canViewTailoring => isAdmin || normalizedRole == 'TAILOR';
+  bool get canViewRentals => isAdmin || normalizedRole == 'RENTAL';
 
   Map<String, Object> toJson() => {
     'token': token,
@@ -26,6 +37,8 @@ class AuthSession {
     'financialYearName': financialYearName,
     'companyName': companyName,
     'userName': userName,
+    'companyLogo': companyLogo,
+    'userRole': userRole,
   };
 
   factory AuthSession.fromJson(Map<String, dynamic> json) {
@@ -46,6 +59,8 @@ class AuthSession {
       financialYearName: json['financialYearName']?.toString() ?? '',
       companyName: json['companyName']?.toString() ?? '',
       userName: json['userName']?.toString() ?? '',
+      companyLogo: json['companyLogo']?.toString() ?? '',
+      userRole: json['userRole']?.toString() ?? '',
     );
   }
 }
@@ -56,6 +71,7 @@ class SessionStore {
   static const _sessionKey = 'auth_session';
   static const _pinKey = 'unlock_pin';
   static const _biometricKey = 'biometric_unlock_enabled';
+  static const _localeKey = 'app_locale';
   final FlutterSecureStorage _storage;
 
   Future<AuthSession?> read() async {
@@ -76,6 +92,11 @@ class SessionStore {
 
   Future<bool> readBiometricPreference() async =>
       await _storage.read(key: _biometricKey) == 'true';
+
+  Future<String?> readLocale() => _storage.read(key: _localeKey);
+
+  Future<void> writeLocale(String languageCode) =>
+      _storage.write(key: _localeKey, value: languageCode);
 
   Future<void> saveUnlockSettings({
     required String pin,
